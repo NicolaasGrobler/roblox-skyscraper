@@ -1,5 +1,8 @@
 # Tutorial - Roblox Game Project
 
+## Preferences
+- Do not mention Claude or AI in git commits, PR descriptions, or code comments
+
 ## Overview
 This is a Roblox game project using modern external tooling for development. The game is developed outside of Roblox Studio using Luau files, then synced to Studio via Rojo.
 
@@ -14,13 +17,20 @@ Managed via **Rokit** (toolchain manager for Roblox projects):
 ```
 src/
 ├── client/          → StarterPlayer.StarterPlayerScripts.Client
-│   └── init.client.luau   (runs on each player's client)
+│   ├── init.client.luau   (entry point - mounts React app)
+│   └── components/        (React components)
+│       ├── App.luau       (root component)
+│       └── MainFrame.luau (reusable UI components)
 ├── server/          → ServerScriptService.Server
 │   └── init.server.luau   (runs on the server)
-└── shared/          → ReplicatedStorage.Shared
-    └── Hello.luau         (modules accessible by both client and server)
+├── shared/          → ReplicatedStorage.Shared
+│   └── Hello.luau         (modules accessible by both client and server)
+└── stories/         → ReplicatedStorage.Stories (UI Labs stories)
+    ├── Storybook.storybook.luau  (storybook config)
+    └── *.story.luau              (component stories)
 
 Packages/            → ReplicatedStorage.Packages (Wally shared packages)
+DevPackages/         → ReplicatedStorage.DevPackages (Wally dev packages)
 ServerPackages/      → ServerScriptService.ServerPackages (Wally server-only packages)
 ```
 
@@ -140,3 +150,59 @@ React.createElement("Frame", {}, {
 - Use PascalCase for component names
 - Keep components small and focused
 - Use `ResetOnSpawn = false` on ScreenGuis to persist UI across respawns
+
+## UI Labs (Component Storybook)
+
+UI Labs is a Storybook-like plugin for visualizing and testing React components in isolation.
+
+### Setup
+1. Install the UI Labs plugin in Roblox Studio
+2. Stories are in `src/stories/` and sync to `ReplicatedStorage.Stories`
+3. Open the UI Labs widget in Studio to browse components
+
+### File Naming
+- `*.storybook.luau` - Storybook configuration (defines where to find stories)
+- `*.story.luau` - Individual component stories
+
+### Creating a Story
+```luau
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
+
+local React = require(ReplicatedStorage.Packages.React)
+local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+
+local MyComponent = require(StarterPlayer.StarterPlayerScripts.Client.components.MyComponent)
+
+local controls = {
+    text = "Default text",      -- String control
+    visible = true,             -- Boolean control
+    count = 5,                  -- Number control
+}
+
+local story = {
+    react = React,
+    reactRoblox = ReactRoblox,
+    controls = controls,
+    story = function(props)
+        return React.createElement(MyComponent, {
+            text = props.controls.text,
+            visible = props.controls.visible,
+        })
+    end,
+}
+
+return story
+```
+
+### Controls
+Controls appear in UI Labs and let you tweak props in real-time:
+- `string` - Text input
+- `boolean` - Checkbox toggle
+- `number` - Number slider
+- `Color3` - Color picker
+
+### Best Practices
+- Create a story for each reusable component
+- Keep components independent of ScreenGui (pass props instead)
+- Use controls to test different states and edge cases

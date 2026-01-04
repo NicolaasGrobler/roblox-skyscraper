@@ -9,6 +9,12 @@
       },
       "Packages": {
         "$path": "Packages"
+      },
+      "DevPackages": {
+        "$path": "DevPackages"
+      },
+      "Stories": {
+        "$path": "src/stories"
       }
     },
 

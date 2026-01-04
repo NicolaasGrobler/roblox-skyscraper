@@ -7,6 +7,10 @@
 
 # Custom
 Packages/
+DevPackages/
 ServerPackages/
 sourcemap.json
 wally.lock
+
+# Claude Code
+.claude/
