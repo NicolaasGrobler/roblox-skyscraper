@@ -1,1 +1,1 @@
-print("Hello world, from server! Edited by Nicolaas")
+print("Hello Chris! This is sent from the server init script.")

@@ -17,6 +17,7 @@
         "$path": "src/server"
       },
       "ServerPackages": {
+        "$className": "Folder",
         "$path": "ServerPackages"
       }
     },
