@@ -57,3 +57,86 @@ wally-package-types --sourcemap sourcemap.json Packages/
 2. Add to `wally.toml` under `[dependencies]` or `[server-dependencies]`
 3. Run `wally install`
 4. Require via `require(ReplicatedStorage.Packages.PackageName)`
+
+## React UI (jsdotlua/react-lua)
+
+### Packages
+- `React` - Core React library (createElement, hooks, etc.)
+- `ReactRoblox` - Roblox-specific renderer (createRoot, createPortal)
+
+### Project Structure
+```
+src/client/
+├── init.client.luau       # Entry point - mounts React app
+└── components/
+    └── App.luau           # Root component
+```
+
+### Creating Components
+Components are functions that return React elements:
+
+```luau
+local React = require(ReplicatedStorage.Packages.React)
+
+local function MyComponent(props)
+    return React.createElement("TextLabel", {
+        Text = props.text,
+        Size = UDim2.fromScale(1, 1),
+    })
+end
+
+return MyComponent
+```
+
+### Mounting the App
+```luau
+local React = require(ReplicatedStorage.Packages.React)
+local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local App = require(script.components.App)
+
+-- Create container (React takes ownership, don't use PlayerGui directly)
+local container = Instance.new("Folder")
+container.Parent = playerGui
+
+local root = ReactRoblox.createRoot(container)
+root:render(React.createElement(App))
+```
+
+### Common Patterns
+
+**Event handling:**
+```luau
+React.createElement("TextButton", {
+    [React.Event.MouseButton1Click] = function(rbx)
+        print("Clicked!")
+    end,
+})
+```
+
+**Using hooks:**
+```luau
+local function Counter()
+    local count, setCount = React.useState(0)
+
+    return React.createElement("TextButton", {
+        Text = "Count: " .. count,
+        [React.Event.MouseButton1Click] = function()
+            setCount(count + 1)
+        end,
+    })
+end
+```
+
+**Children with keys:**
+```luau
+React.createElement("Frame", {}, {
+    Header = React.createElement("TextLabel", { Text = "Header" }),
+    Body = React.createElement("TextLabel", { Text = "Body" }),
+})
+```
+
+### Best Practices
+- One component per file in `src/client/components/`
+- Use PascalCase for component names
+- Keep components small and focused
+- Use `ResetOnSpawn = false` on ScreenGuis to persist UI across respawns
