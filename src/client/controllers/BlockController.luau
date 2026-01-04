@@ -9,6 +9,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local InputHandler = require(script.Parent.Parent.input.InputHandler)
 local CameraController = require(script.Parent.CameraController)
+local SoundController = require(script.Parent.Parent.audio.SoundController)
 
 local BlockController = {}
 
@@ -22,6 +23,7 @@ local currentBlockData: Types.BlockData? = nil
 local isDropping = false
 local towerHeight = 0
 local blockCount = 0
+local comboCount = 0
 local basePosition = Vector3.new(0, 5, 0)
 
 -- Initialize the controller
@@ -40,6 +42,10 @@ function BlockController.init(remotesFolder: Folder, arenaBasePosition: Vector3?
 
 	-- Initialize camera
 	CameraController.init(basePosition)
+
+	-- Initialize audio and start music
+	SoundController.init()
+	SoundController.fadeInMusic(2)
 
 	-- Listen for server events
 	remotes.BlockSpawned.OnClientEvent:Connect(function(blockData: Types.BlockData)
@@ -90,6 +96,10 @@ function BlockController.handleDropResult(result: Types.DropResult)
 		InputHandler.unbindDropAction()
 		print("Game Over! You stacked " .. blockCount .. " blocks!")
 
+		-- Play miss sound and fade out music
+		SoundController.play("miss")
+		SoundController.fadeOutMusic(1.5)
+
 		-- Zoom out to show the full tower
 		CameraController.zoomOutToShowTower(towerHeight)
 		return
@@ -97,7 +107,18 @@ function BlockController.handleDropResult(result: Types.DropResult)
 
 	if result.isPerfect then
 		print("PERFECT!")
+		comboCount = comboCount + 1
+		-- Play perfect sound with increasing pitch for combos (max 1.5x)
+		local pitch = 1 + math.min(comboCount - 1, 5) * 0.1
+		SoundController.playWithPitch("perfectStack", pitch)
+	else
+		-- Partial stack - play chop sound
+		comboCount = 0
+		SoundController.play("blockChop")
 	end
+
+	-- Play landing sound
+	SoundController.play("blockLand")
 
 	-- Update tower height tracking
 	blockCount = blockCount + 1
@@ -113,10 +134,12 @@ end
 function BlockController.cleanup()
 	InputHandler.unbindDropAction()
 	CameraController.cleanup()
+	SoundController.cleanup()
 	currentBlockData = nil
 	isDropping = false
 	towerHeight = 0
 	blockCount = 0
+	comboCount = 0
 end
 
 return BlockController
