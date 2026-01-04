@@ -21,6 +21,10 @@ export type TowerData = {
 	blockCount: number,
 	currentAxis: BlockAxis,
 	startingColorIndex: number,
+	-- Scoring
+	score: number,
+	comboCount: number,
+	maxCombo: number,
 }
 
 export type DropResult = {
@@ -29,6 +33,17 @@ export type DropResult = {
 	newBlockSize: Vector3?,
 	isPerfect: boolean?,
 	eliminated: boolean?,
+	-- Scoring
+	score: number?,
+	comboCount: number?,
+	pointsEarned: number?,
+}
+
+export type GameStats = {
+	score: number,
+	comboCount: number,
+	blockCount: number,
+	maxCombo: number,
 }
 
 return nil

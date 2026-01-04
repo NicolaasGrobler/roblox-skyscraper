@@ -3,7 +3,6 @@
 	Manages the camera for the stacking game - fixed isometric view that follows tower height.
 ]]
 
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local CameraController = {}
@@ -21,9 +20,26 @@ local targetHeight = 5 -- Current tower height to track
 local currentCameraY = 15 -- Smoothed camera Y position
 local basePosition = Vector3.new(0, 5, 0)
 local updateConnection: RBXScriptConnection?
+local orbitConnection: RBXScriptConnection?
+local fadeFrame: Frame? = nil
 
 -- Initialize the camera controller
 function CameraController.init(arenaBasePosition: Vector3)
+	-- Clean up any existing connections first (important for restart)
+	if updateConnection then
+		updateConnection:Disconnect()
+		updateConnection = nil
+	end
+	if orbitConnection then
+		orbitConnection:Disconnect()
+		orbitConnection = nil
+	end
+	-- Clean up fade overlay
+	if fadeFrame and fadeFrame.Parent then
+		fadeFrame.Parent:Destroy()
+		fadeFrame = nil
+	end
+
 	basePosition = arenaBasePosition
 
 	-- Set camera to Scriptable so we have full control
@@ -89,8 +105,6 @@ function CameraController.setTargetHeight(height: number)
 end
 
 -- Create fade overlay for transitions
-local fadeFrame: Frame? = nil
-
 local function createFadeOverlay(): Frame
 	local Players = game:GetService("Players")
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -112,8 +126,61 @@ local function createFadeOverlay(): Frame
 	return frame
 end
 
+-- Transition with fade to black, callback, then fade back in
+function CameraController.transitionWithFade(onDuringBlack: () -> (), onComplete: (() -> ())?)
+	local TweenService = game:GetService("TweenService")
+
+	-- Create a local fade overlay (separate from module fadeFrame)
+	local transitionFade = createFadeOverlay()
+
+	-- Fade to black
+	local fadeOutTween = TweenService:Create(
+		transitionFade,
+		TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ BackgroundTransparency = 0 }
+	)
+
+	fadeOutTween.Completed:Connect(function()
+		-- Do the work while screen is black
+		onDuringBlack()
+
+		-- Small delay to let things settle
+		task.delay(0.1, function()
+			-- Fade back in
+			if not transitionFade or not transitionFade.Parent then
+				if onComplete then
+					onComplete()
+				end
+				return
+			end
+
+			local fadeInTween = TweenService:Create(
+				transitionFade,
+				TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ BackgroundTransparency = 1 }
+			)
+
+			fadeInTween.Completed:Connect(function()
+				-- Clean up fade overlay
+				if transitionFade and transitionFade.Parent then
+					transitionFade.Parent:Destroy()
+				end
+
+				if onComplete then
+					onComplete()
+				end
+			end)
+
+			fadeInTween:Play()
+		end)
+	end)
+
+	fadeOutTween:Play()
+end
+
 -- Zoom out to show the full tower (called on game over)
-function CameraController.zoomOutToShowTower(towerHeight: number)
+-- onComplete callback is called when the animation finishes
+function CameraController.zoomOutToShowTower(towerHeight: number, onComplete: (() -> ())?)
 	local TweenService = game:GetService("TweenService")
 
 	-- Stop the normal update loop
@@ -171,7 +238,7 @@ function CameraController.zoomOutToShowTower(towerHeight: number)
 
 		fadeInTween.Completed:Connect(function()
 			-- Phase 3: Pan from bottom to top
-			CameraController.panUpTower(bottomCameraPos, topCameraPos, bottomLookAt, topLookAt, towerHeight)
+			CameraController.panUpTower(bottomCameraPos, topCameraPos, bottomLookAt, topLookAt, towerHeight, onComplete)
 		end)
 
 		fadeInTween:Play()
@@ -186,7 +253,8 @@ function CameraController.panUpTower(
 	endPos: Vector3,
 	startLookAt: Vector3,
 	endLookAt: Vector3,
-	towerHeight: number
+	towerHeight: number,
+	onComplete: (() -> ())?
 )
 	-- Calculate pan time based on tower height (taller = longer pan)
 	local panTime = math.clamp(towerHeight / 10, 2, 5)
@@ -212,6 +280,11 @@ function CameraController.panUpTower(
 		if progress >= 1 then
 			panConnection:Disconnect()
 
+			-- Call completion callback
+			if onComplete then
+				onComplete()
+			end
+
 			-- Start orbiting around the tower at the top
 			local horizontalDistance = 40
 			CameraController.startOrbit(towerHeight, horizontalDistance)
@@ -220,8 +293,6 @@ function CameraController.panUpTower(
 end
 
 -- Keep camera orbiting around the tower (used after game over)
-local orbitConnection: RBXScriptConnection?
-
 function CameraController.startOrbit(towerHeight: number, distance: number)
 	-- Clean up any existing orbit
 	if orbitConnection then

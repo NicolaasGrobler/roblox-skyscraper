@@ -20,6 +20,10 @@ function TowerState.new(playerId: number, basePosition: Vector3, startingColorIn
 		blockCount = 0,
 		currentAxis = "X" :: Types.BlockAxis, -- First block swings on X axis
 		startingColorIndex = startingColorIndex,
+		-- Scoring
+		score = 0,
+		comboCount = 0,
+		maxCombo = 0,
 	}
 end
 

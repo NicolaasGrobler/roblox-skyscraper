@@ -24,7 +24,19 @@ local remotes: {
 	BlockDropped: RemoteEvent?,
 	BlockSpawned: RemoteEvent?,
 	GameStateUpdate: RemoteEvent?,
+	RestartGame: RemoteEvent?,
 } = {}
+
+-- Get or create the Blocks folder in workspace
+local function getBlocksFolder(): Folder
+	local blocksFolder = workspace:FindFirstChild("Blocks")
+	if not blocksFolder then
+		blocksFolder = Instance.new("Folder")
+		blocksFolder.Name = "Blocks"
+		blocksFolder.Parent = workspace
+	end
+	return blocksFolder :: Folder
+end
 
 -- Initialize the service with RemoteEvents
 function BlockService.init(remotesFolder: Folder)
@@ -32,10 +44,16 @@ function BlockService.init(remotesFolder: Folder)
 	remotes.BlockDropped = remotesFolder:WaitForChild("BlockDropped") :: RemoteEvent
 	remotes.BlockSpawned = remotesFolder:WaitForChild("BlockSpawned") :: RemoteEvent
 	remotes.GameStateUpdate = remotesFolder:WaitForChild("GameStateUpdate") :: RemoteEvent
+	remotes.RestartGame = remotesFolder:WaitForChild("RestartGame") :: RemoteEvent
 
 	-- Handle drop requests from clients
 	remotes.RequestDrop.OnServerEvent:Connect(function(player)
 		BlockService.handleDropRequest(player)
+	end)
+
+	-- Handle restart requests from clients
+	remotes.RestartGame.OnServerEvent:Connect(function(player)
+		BlockService.restartGame(player)
 	end)
 end
 
@@ -56,12 +74,7 @@ end
 
 -- Create foundation pillar for the player (acts as the base to stack on)
 function BlockService.createFoundation(player: Player, basePosition: Vector3, startingColorIndex: number)
-	local blocksFolder = workspace:FindFirstChild("Blocks")
-	if not blocksFolder then
-		blocksFolder = Instance.new("Folder")
-		blocksFolder.Name = "Blocks"
-		blocksFolder.Parent = workspace
-	end
+	local blocksFolder = getBlocksFolder()
 
 	-- Create foundation pillar that extends down from base position
 	local pillarHeight = 50
@@ -115,13 +128,7 @@ function BlockService.spawnNextBlock(player: Player)
 	blockPart.CanCollide = false
 
 	-- Parent to workspace
-	local blocksFolder = workspace:FindFirstChild("Blocks")
-	if not blocksFolder then
-		blocksFolder = Instance.new("Folder")
-		blocksFolder.Name = "Blocks"
-		blocksFolder.Parent = workspace
-	end
-	blockPart.Parent = blocksFolder
+	blockPart.Parent = getBlocksFolder()
 
 	-- Create swing animation (horizontal slide at landing height, centered on top block)
 	local swingCenter = Vector3.new(centerX, landingY, centerZ)
@@ -196,11 +203,33 @@ function BlockService.handleDropRequest(player: Player)
 		BlockService.animateBlockFallOff(active.part)
 		activeBlocks[player] = nil
 
+		-- Include final stats in elimination result
+		result.score = tower.score
+		result.comboCount = 0
+		result.pointsEarned = 0
+
 		if remotes.BlockDropped then
 			remotes.BlockDropped:FireClient(player, result)
 		end
 		return
 	end
+
+	-- Update combo
+	if result.isPerfect then
+		tower.comboCount = tower.comboCount + 1
+		tower.maxCombo = math.max(tower.maxCombo, tower.comboCount)
+	else
+		tower.comboCount = 0
+	end
+
+	-- Calculate points
+	local pointsEarned = Constants.calculatePoints(result.isPerfect, tower.comboCount)
+	tower.score = tower.score + pointsEarned
+
+	-- Add scoring to result
+	result.score = tower.score
+	result.comboCount = tower.comboCount
+	result.pointsEarned = pointsEarned
 
 	-- Calculate final position
 	local landPosition = Vector3.new(
@@ -360,11 +389,7 @@ function BlockService.spawnFallingDebris(originalPart: Part, blockData: Types.Bl
 	debris.Material = Enum.Material.SmoothPlastic
 	debris.Anchored = false -- Falls with gravity!
 	debris.CanCollide = false -- Don't collide with tower
-
-	local blocksFolder = workspace:FindFirstChild("Blocks")
-	if blocksFolder then
-		debris.Parent = blocksFolder
-	end
+	debris.Parent = getBlocksFolder()
 
 	-- Clean up debris after a few seconds
 	task.delay(3, function()
@@ -467,8 +492,21 @@ function BlockService.calculateLanding(
 	}
 end
 
--- Clean up when a player leaves
-function BlockService.cleanup(player: Player)
+-- Restart game for a player
+function BlockService.restartGame(player: Player)
+	local tower = playerTowers[player]
+	local basePosition = if tower then tower.basePosition else Vector3.new(0, 5, 0)
+
+	-- Clean up existing blocks
+	BlockService.cleanupPlayerBlocks(player)
+
+	-- Start fresh game
+	BlockService.startGameForPlayer(player, basePosition)
+end
+
+-- Clean up all blocks for a player
+function BlockService.cleanupPlayerBlocks(player: Player)
+	-- Cancel active block
 	local active = activeBlocks[player]
 	if active then
 		if active.swingTween then
@@ -479,7 +517,33 @@ function BlockService.cleanup(player: Player)
 		end
 		activeBlocks[player] = nil
 	end
+
+	-- Remove tower blocks
+	local tower = playerTowers[player]
+	if tower then
+		local blocksFolder = getBlocksFolder()
+
+		-- Remove foundation
+		local foundation = blocksFolder:FindFirstChild("Foundation_" .. player.UserId)
+		if foundation then
+			foundation:Destroy()
+		end
+
+		-- Remove all stacked blocks for this tower
+		for _, block in tower.blocks do
+			local blockPart = blocksFolder:FindFirstChild("Block_" .. block.id)
+			if blockPart then
+				blockPart:Destroy()
+			end
+		end
+	end
+
 	playerTowers[player] = nil
+end
+
+-- Clean up when a player leaves
+function BlockService.cleanup(player: Player)
+	BlockService.cleanupPlayerBlocks(player)
 end
 
 return BlockService

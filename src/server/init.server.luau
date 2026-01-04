@@ -70,7 +70,7 @@ remotesFolder.Name = "Remotes"
 remotesFolder.Parent = ReplicatedStorage
 
 -- Create required RemoteEvents
-local remoteNames = { "RequestDrop", "BlockDropped", "BlockSpawned", "GameStateUpdate" }
+local remoteNames = { "RequestDrop", "BlockDropped", "BlockSpawned", "GameStateUpdate", "RestartGame" }
 for _, name in remoteNames do
 	local remote = Instance.new("RemoteEvent")
 	remote.Name = name

@@ -19,6 +19,11 @@ local Constants = {
 	-- Spawn positions
 	SPAWN_HEIGHT_OFFSET = 5, -- How high above tower to spawn block
 
+	-- Scoring
+	BASE_POINTS = 100, -- Points per block
+	PERFECT_BONUS = 50, -- Extra points for perfect stack
+	MAX_COMBO_MULTIPLIER = 10, -- Maximum combo multiplier
+
 	-- Colors (rainbow gradient keypoints)
 	BLOCK_COLORS = {
 		Color3.fromRGB(255, 89, 94), -- Red
@@ -37,6 +42,19 @@ local Constants = {
 -- Calculate swing speed based on block count (from GDD formula)
 function Constants.calculateSwingSpeed(blockCount: number): number
 	return Constants.BASE_SWING_SPEED + (blockCount * Constants.SPEED_INCREMENT)
+end
+
+-- Calculate points earned for a block drop
+function Constants.calculatePoints(isPerfect: boolean, comboCount: number): number
+	local points = Constants.BASE_POINTS
+
+	if isPerfect then
+		-- Perfect bonus with combo multiplier
+		local multiplier = math.min(comboCount, Constants.MAX_COMBO_MULTIPLIER)
+		points = points + (Constants.PERFECT_BONUS * multiplier)
+	end
+
+	return points
 end
 
 -- Get block color based on block index (smooth gradient interpolation)
