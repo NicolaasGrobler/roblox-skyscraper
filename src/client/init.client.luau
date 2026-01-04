@@ -71,10 +71,18 @@ print("[Client] Remotes folder found, initializing BlockController...")
 local arenaBasePosition = Vector3.new(0, 5, 0)
 BlockController.init(remotesFolder, arenaBasePosition)
 
--- React takes full ownership of the container, so use a Folder, not PlayerGui directly
+-- Create a ScreenGui that persists across respawns
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "GameUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- React container inside the persistent ScreenGui
 local container = Instance.new("Folder")
 container.Name = "ReactRoot"
-container.Parent = playerGui
+container.Parent = screenGui
 
 -- Mount the app
 local root = ReactRoblox.createRoot(container)
