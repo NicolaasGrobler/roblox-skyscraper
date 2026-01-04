@@ -7,14 +7,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 
-local MainFrame = require(script.Parent.MainFrame)
-
 local function App()
+	-- Empty ScreenGui for now - will add game HUD later
 	return React.createElement("ScreenGui", {
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	}, {
-		MainFrame = React.createElement(MainFrame),
 	})
 end
 
