@@ -65,7 +65,7 @@ local function PerfectPopup(props: PerfectPopupProps)
 		ref = frameRef,
 		Position = UDim2.fromScale(0.5, 0.28),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(200, 50),
+		Size = UDim2.fromScale(0.35, 0.1),
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, {
@@ -80,8 +80,13 @@ local function PerfectPopup(props: PerfectPopupProps)
 			BackgroundTransparency = 1,
 			Text = "PERFECT",
 			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextSize = 32,
-			FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+			TextScaled = true,
+			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+		}, {
+			TextConstraint = React.createElement("UITextSizeConstraint", {
+				MaxTextSize = 48,
+				MinTextSize = 16,
+			}),
 		}),
 
 		PointsText = React.createElement("TextLabel", {
@@ -91,8 +96,13 @@ local function PerfectPopup(props: PerfectPopupProps)
 			BackgroundTransparency = 1,
 			Text = string.format("+%d", props.pointsEarned),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextSize = 16,
-			FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+			TextScaled = true,
+			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+		}, {
+			TextConstraint = React.createElement("UITextSizeConstraint", {
+				MaxTextSize = 24,
+				MinTextSize = 10,
+			}),
 		}),
 	})
 end

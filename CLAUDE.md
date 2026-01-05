@@ -206,3 +206,87 @@ Controls appear in UI Labs and let you tweak props in real-time:
 - Create a story for each reusable component
 - Keep components independent of ScreenGui (pass props instead)
 - Use controls to test different states and edge cases
+
+## Responsive UI (Cross-Platform)
+
+### Key Principles
+UI must work across desktop (landscape) and mobile (portrait). Avoid fixed pixel sizes.
+
+### Positioning & Sizing
+Use `UDim2.fromScale()` for positions and sizes so they scale with viewport:
+```luau
+-- Good: scales with screen
+Position = UDim2.fromScale(0.5, 0.08),  -- 50% X, 8% from top
+Size = UDim2.fromScale(0.4, 0.1),       -- 40% width, 10% height
+
+-- Bad: fixed pixels, won't scale
+Position = UDim2.new(0.5, 0, 0, 24),    -- 24px from top (too close on mobile)
+Size = UDim2.new(0, 200, 0, 60),        -- 200x60 pixels (too small on large screens)
+```
+
+### Text Scaling
+Use `TextScaled = true` with `UITextSizeConstraint` to auto-size text:
+```luau
+React.createElement("TextLabel", {
+    Size = UDim2.fromScale(1, 0.5),
+    Text = "Score",
+    TextScaled = true,  -- Auto-size text to fit
+    FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+}, {
+    TextConstraint = React.createElement("UITextSizeConstraint", {
+        MaxTextSize = 48,  -- Cap for large screens
+        MinTextSize = 16,  -- Floor for small screens
+    }),
+})
+```
+
+### Portrait Mode Detection
+Detect orientation for responsive layouts:
+```luau
+local isPortrait, setIsPortrait = React.useState(false)
+
+React.useEffect(function()
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+
+    local function updateOrientation()
+        local viewport = camera.ViewportSize
+        setIsPortrait(viewport.Y > viewport.X)
+    end
+
+    updateOrientation()
+    local connection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateOrientation)
+    return function()
+        connection:Disconnect()
+    end
+end, {})
+
+-- Use in component
+Size = UDim2.fromScale(if isPortrait then 0.9 else 0.55, 0.18),
+```
+
+### Mobile Top Bar
+Account for Roblox's native UI at the top on mobile:
+- Position HUD elements at `0.08` (8%) from top minimum
+- Or use `IgnoreGuiInset = false` on ScreenGui
+
+### Fonts
+Use **Builder** fonts (not deprecated Gotham):
+| Old (Deprecated) | New |
+|------------------|-----|
+| `GothamBlack` | `BuilderSansExtraBold` |
+| `GothamBold` | `BuilderSansBold` |
+| `GothamMedium` | `BuilderSansMedium` |
+
+### Camera Distance (Portrait)
+Zoom out camera in portrait mode to show more of the scene:
+```luau
+local function isPortraitMode(): boolean
+    local viewport = camera.ViewportSize
+    return viewport.Y > viewport.X
+end
+
+local function getCameraDistance(): number
+    return if isPortraitMode() then 70 else 50
+end
+```

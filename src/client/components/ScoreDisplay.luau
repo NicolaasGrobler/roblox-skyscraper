@@ -40,34 +40,44 @@ local function ScoreDisplay(props: ScoreDisplayProps)
 
 	return React.createElement("Frame", {
 		ref = frameRef,
-		Position = UDim2.new(0.5, 0, 0, 24),
+		Position = UDim2.fromScale(0.5, 0.08),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.new(0, 200, 0, 60),
+		Size = UDim2.fromScale(0.4, 0.1),
 		BackgroundTransparency = 1,
 	}, {
 		-- Score value
 		ScoreLabel = React.createElement("TextLabel", {
 			Position = UDim2.fromScale(0.5, 0.35),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.new(1, 0, 0, 40),
+			Size = UDim2.fromScale(1, 0.65),
 			BackgroundTransparency = 1,
 			Text = string.format("%d", props.score),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
-			TextSize = 42,
-			FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+			TextScaled = true,
+			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+		}, {
+			TextConstraint = React.createElement("UITextSizeConstraint", {
+				MaxTextSize = 72,
+				MinTextSize = 24,
+			}),
 		}),
 
 		-- Blocks count
 		BlocksLabel = React.createElement("TextLabel", {
-			Position = UDim2.fromScale(0.5, 0.8),
+			Position = UDim2.fromScale(0.5, 0.82),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.new(1, 0, 0, 16),
+			Size = UDim2.fromScale(1, 0.25),
 			BackgroundTransparency = 1,
 			Text = string.format("%d blocks", props.blockCount),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
 			TextTransparency = 0.3,
-			TextSize = 14,
-			FontFace = Font.fromEnum(Enum.Font.GothamBold),
+			TextScaled = true,
+			FontFace = Font.fromEnum(Enum.Font.BuilderSansBold),
+		}, {
+			TextConstraint = React.createElement("UITextSizeConstraint", {
+				MaxTextSize = 24,
+				MinTextSize = 10,
+			}),
 		}),
 	})
 end

@@ -12,9 +12,21 @@ local camera = workspace.CurrentCamera
 -- Camera settings (fixed isometric with orthographic-style projection)
 local CAMERA_FOV = 15 -- Low FOV for orthographic-like effect
 local CAMERA_DISTANCE = 50 -- Increased distance to compensate for low FOV
+local CAMERA_DISTANCE_PORTRAIT = 70 -- Extra distance for portrait mode on mobile
 local CAMERA_HEIGHT_OFFSET = 3 -- How high above current tower top
 local CAMERA_ANGLE = 45 -- Degrees from horizontal
 local CAMERA_ROTATION = 45 -- Fixed rotation (isometric corner view)
+
+-- Check if viewport is in portrait mode
+local function isPortraitMode(): boolean
+	local viewport = camera.ViewportSize
+	return viewport.Y > viewport.X
+end
+
+-- Get camera distance based on orientation
+local function getCameraDistance(): number
+	return if isPortraitMode() then CAMERA_DISTANCE_PORTRAIT else CAMERA_DISTANCE
+end
 
 local targetHeight = 5 -- Current tower height to track
 local currentCameraY = 15 -- Smoothed camera Y position
@@ -74,10 +86,11 @@ end
 function CameraController.updateCameraPosition()
 	local angleRad = math.rad(CAMERA_ANGLE)
 	local rotationRad = math.rad(CAMERA_ROTATION)
+	local cameraDistance = getCameraDistance()
 
 	-- Calculate camera offset from tower center
-	local horizontalDistance = CAMERA_DISTANCE * math.cos(angleRad)
-	local verticalOffset = CAMERA_DISTANCE * math.sin(angleRad)
+	local horizontalDistance = cameraDistance * math.cos(angleRad)
+	local verticalOffset = cameraDistance * math.sin(angleRad)
 
 	local offsetX = horizontalDistance * math.cos(rotationRad)
 	local offsetZ = horizontalDistance * math.sin(rotationRad)
@@ -194,7 +207,7 @@ function CameraController.zoomOutToShowTower(towerHeight: number, onComplete: ((
 
 	-- Calculate camera positions for the pan
 	local towerTopHeight = basePosition.Y + towerHeight
-	local horizontalDistance = 40 -- Distance from tower center
+	local horizontalDistance = if isPortraitMode() then 55 else 40 -- Distance from tower center
 
 	local rotationRad = math.rad(CAMERA_ROTATION)
 	local offsetX = horizontalDistance * math.cos(rotationRad)
@@ -286,8 +299,8 @@ function CameraController.panUpTower(
 			end
 
 			-- Start orbiting around the tower at the top
-			local horizontalDistance = 40
-			CameraController.startOrbit(towerHeight, horizontalDistance)
+			local orbitDistance = if isPortraitMode() then 55 else 40
+			CameraController.startOrbit(towerHeight, orbitDistance)
 		end
 	end)
 end

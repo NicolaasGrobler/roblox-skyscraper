@@ -39,14 +39,19 @@ local function ComboDisplay(props: ComboDisplayProps)
 
 	return React.createElement("TextLabel", {
 		ref = labelRef,
-		Position = UDim2.new(0.5, 0, 0, 90),
+		Position = UDim2.fromScale(0.5, 0.19),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.new(0, 100, 0, 24),
+		Size = UDim2.fromScale(0.3, 0.04),
 		BackgroundTransparency = 1,
 		Text = string.format("x%d combo", props.comboCount),
 		TextColor3 = Color3.fromRGB(255, 220, 100),
-		TextSize = 18,
-		FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+		TextScaled = true,
+		FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+	}, {
+		TextConstraint = React.createElement("UITextSizeConstraint", {
+			MaxTextSize = 32,
+			MinTextSize = 12,
+		}),
 	})
 end
 

@@ -19,6 +19,27 @@ local function GameOverScreen(props: GameOverScreenProps)
 	local frameRef = React.useRef(nil :: Frame?)
 	local contentRef = React.useRef(nil :: Frame?)
 
+	-- Track if we're in portrait mode for responsive button sizing
+	local isPortrait, setIsPortrait = React.useState(false)
+
+	React.useEffect(function()
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+
+		local function updateOrientation()
+			local viewport = camera.ViewportSize
+			setIsPortrait(viewport.Y > viewport.X)
+		end
+
+		updateOrientation()
+		local connection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateOrientation)
+		return function()
+			connection:Disconnect()
+		end
+	end, {})
+
 	-- Animate when visible changes to true
 	React.useEffect(function()
 		local frame = frameRef.current
@@ -89,8 +110,7 @@ local function GameOverScreen(props: GameOverScreenProps)
 
 	return React.createElement("Frame", {
 		ref = frameRef,
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0, 0),
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 1,
@@ -100,7 +120,7 @@ local function GameOverScreen(props: GameOverScreenProps)
 			ref = contentRef,
 			Position = UDim2.fromScale(0.5, 0.5),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(300, 200),
+			Size = UDim2.fromScale(0.5, 0.4),
 			BackgroundTransparency = 1,
 		}, {
 			Scale = React.createElement("UIScale", {
@@ -111,59 +131,85 @@ local function GameOverScreen(props: GameOverScreenProps)
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Padding = UDim.new(0, 12),
+				Padding = UDim.new(0.02, 0),
 			}),
 
 			GameOverText = React.createElement("TextLabel", {
 				Name = "GameOverText",
 				LayoutOrder = 1,
-				Size = UDim2.new(1, 0, 0, 40),
+				Size = UDim2.fromScale(1, 0.18),
 				BackgroundTransparency = 1,
 				Text = "GAME OVER",
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextTransparency = 1,
-				TextSize = 36,
-				FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+				TextScaled = true,
+				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+			}, {
+				TextConstraint = React.createElement("UITextSizeConstraint", {
+					MaxTextSize = 56,
+					MinTextSize = 20,
+				}),
 			}),
 
 			ScoreText = React.createElement("TextLabel", {
 				Name = "ScoreText",
 				LayoutOrder = 2,
-				Size = UDim2.new(1, 0, 0, 50),
+				Size = UDim2.fromScale(1, 0.25),
 				BackgroundTransparency = 1,
 				Text = string.format("%d", props.score),
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextTransparency = 1,
-				TextSize = 48,
-				FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+				TextScaled = true,
+				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
+			}, {
+				TextConstraint = React.createElement("UITextSizeConstraint", {
+					MaxTextSize = 72,
+					MinTextSize = 28,
+				}),
 			}),
 
 			BlocksText = React.createElement("TextLabel", {
 				Name = "BlocksText",
 				LayoutOrder = 3,
-				Size = UDim2.new(1, 0, 0, 20),
+				Size = UDim2.fromScale(1, 0.1),
 				BackgroundTransparency = 1,
 				Text = string.format("%d blocks stacked", props.blockCount),
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextTransparency = 1,
-				TextSize = 16,
-				FontFace = Font.fromEnum(Enum.Font.GothamBold),
+				TextScaled = true,
+				FontFace = Font.fromEnum(Enum.Font.BuilderSansBold),
+			}, {
+				TextConstraint = React.createElement("UITextSizeConstraint", {
+					MaxTextSize = 24,
+					MinTextSize = 12,
+				}),
+			}),
+
+			-- Spacer for extra spacing before button
+			Spacer = React.createElement("Frame", {
+				LayoutOrder = 4,
+				Size = UDim2.fromScale(1, 0.06),
+				BackgroundTransparency = 1,
 			}),
 
 			RestartButton = React.createElement("TextButton", {
 				Name = "RestartButton",
-				LayoutOrder = 4,
-				Size = UDim2.new(0, 160, 0, 44),
+				LayoutOrder = 5,
+				Size = UDim2.fromScale(if isPortrait then 0.9 else 0.55, 0.18),
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				Text = "PLAY AGAIN",
 				TextColor3 = Color3.fromRGB(0, 0, 0),
 				TextTransparency = 1,
-				TextSize = 18,
-				FontFace = Font.fromEnum(Enum.Font.GothamBlack),
+				TextScaled = true,
+				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 				[React.Event.MouseButton1Click] = props.onRestart,
 			}, {
 				Corner = React.createElement("UICorner", {
-					CornerRadius = UDim.new(0, 8),
+					CornerRadius = UDim.new(0.2, 0),
+				}),
+				TextConstraint = React.createElement("UITextSizeConstraint", {
+					MaxTextSize = 28,
+					MinTextSize = 12,
 				}),
 			}),
 		}),
