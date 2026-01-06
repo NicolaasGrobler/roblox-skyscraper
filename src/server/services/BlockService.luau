@@ -89,7 +89,7 @@ function BlockService.createFoundation(player: Player, basePosition: Vector3, st
 		basePosition.Z
 	)
 	foundation.Anchored = true
-	foundation.CanCollide = false
+	foundation.CanCollide = true
 	foundation.Color = Constants.getBlockColor(startingColorIndex)
 	foundation.Material = Enum.Material.SmoothPlastic
 	foundation.Parent = blocksFolder
@@ -243,9 +243,12 @@ function BlockService.handleDropRequest(player: Player)
 		active.part.Size = result.newBlockSize
 	end
 	active.part.Position = landPosition
+	active.part.CanCollide = true -- Enable collision once landed
 
-	-- SECOND: Spawn falling debris after the chop
-	if not result.isPerfect and result.newBlockSize then
+	-- SECOND: Spawn falling debris after the chop OR show perfect effect
+	if result.isPerfect then
+		BlockService.animatePerfectEffect(active.part)
+	elseif result.newBlockSize then
 		BlockService.spawnFallingDebris(active.part, active.data, dropPosition, result)
 	end
 
@@ -280,7 +283,7 @@ function BlockService.animateBounce(blockPart: Part, restPosition: Vector3, onCo
 
 	local hopTween = TweenService:Create(
 		blockPart,
-		TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		TweenInfo.new(0.04, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		{ Position = hopPosition }
 	)
 
@@ -288,7 +291,7 @@ function BlockService.animateBounce(blockPart: Part, restPosition: Vector3, onCo
 		-- Fall back down
 		local dropTween = TweenService:Create(
 			blockPart,
-			TweenInfo.new(0.1, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out),
+			TweenInfo.new(0.05, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out),
 			{ Position = restPosition }
 		)
 
@@ -300,6 +303,88 @@ function BlockService.animateBounce(blockPart: Part, restPosition: Vector3, onCo
 	end)
 
 	hopTween:Play()
+end
+
+-- Animate perfect stack visual effect on the block
+function BlockService.animatePerfectEffect(blockPart: Part)
+	local originalColor = blockPart.Color
+	local goldColor = Color3.fromRGB(255, 215, 0)
+	local whiteColor = Color3.fromRGB(255, 255, 255)
+
+	-- Create a highlight effect
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = goldColor
+	highlight.OutlineColor = whiteColor
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.Parent = blockPart
+
+	-- Create particle burst
+	local particles = Instance.new("ParticleEmitter")
+	particles.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, whiteColor),
+		ColorSequenceKeypoint.new(0.5, goldColor),
+		ColorSequenceKeypoint.new(1, goldColor),
+	})
+	particles.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.5),
+		NumberSequenceKeypoint.new(0.5, 0.3),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	particles.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.8, 0.5),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	particles.Lifetime = NumberRange.new(0.3, 0.6)
+	particles.Speed = NumberRange.new(8, 15)
+	particles.SpreadAngle = Vector2.new(360, 360)
+	particles.Rate = 0
+	particles.Parent = blockPart
+
+	-- Burst particles
+	particles:Emit(20)
+
+	-- Flash color to gold briefly
+	local flashTween = TweenService:Create(
+		blockPart,
+		TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ Color = goldColor }
+	)
+
+	flashTween.Completed:Connect(function()
+		-- Fade back to original color
+		local revertTween = TweenService:Create(
+			blockPart,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{ Color = originalColor }
+		)
+		revertTween:Play()
+	end)
+
+	flashTween:Play()
+
+	-- Fade out highlight
+	local highlightFade = TweenService:Create(
+		highlight,
+		TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ FillTransparency = 1, OutlineTransparency = 1 }
+	)
+
+	highlightFade.Completed:Connect(function()
+		highlight:Destroy()
+	end)
+
+	task.delay(0.1, function()
+		highlightFade:Play()
+	end)
+
+	-- Clean up particles after they finish
+	task.delay(1, function()
+		if particles and particles.Parent then
+			particles:Destroy()
+		end
+	end)
 end
 
 -- Animate block falling off when player misses
@@ -388,13 +473,24 @@ function BlockService.spawnFallingDebris(originalPart: Part, blockData: Types.Bl
 	debris.Color = originalPart.Color
 	debris.Material = Enum.Material.SmoothPlastic
 	debris.Anchored = false -- Falls with gravity!
-	debris.CanCollide = false -- Don't collide with tower
+	debris.CanCollide = true -- Bounces off tower blocks
 	debris.Parent = getBlocksFolder()
 
-	-- Clean up debris after a few seconds
-	task.delay(3, function()
+	-- Clean up debris after a few seconds with shrink animation
+	task.delay(2, function()
 		if debris and debris.Parent then
-			debris:Destroy()
+			-- Shrink and fade out animation
+			local shrinkTween = TweenService:Create(
+				debris,
+				TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+				{ Size = Vector3.new(0, 0, 0), Transparency = 1 }
+			)
+			shrinkTween.Completed:Connect(function()
+				if debris and debris.Parent then
+					debris:Destroy()
+				end
+			end)
+			shrinkTween:Play()
 		end
 	end)
 end

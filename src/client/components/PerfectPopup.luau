@@ -63,9 +63,9 @@ local function PerfectPopup(props: PerfectPopupProps)
 
 	return React.createElement("Frame", {
 		ref = frameRef,
-		Position = UDim2.fromScale(0.5, 0.28),
+		Position = UDim2.fromScale(0.5, 0.38),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromScale(0.35, 0.1),
+		Size = UDim2.fromScale(0.45, 0.14),
 		BackgroundTransparency = 1,
 		Visible = false,
 	}, {
@@ -84,7 +84,7 @@ local function PerfectPopup(props: PerfectPopupProps)
 			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 		}, {
 			TextConstraint = React.createElement("UITextSizeConstraint", {
-				MaxTextSize = 48,
+				MaxTextSize = 72,
 				MinTextSize = 16,
 			}),
 		}),
@@ -100,7 +100,7 @@ local function PerfectPopup(props: PerfectPopupProps)
 			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 		}, {
 			TextConstraint = React.createElement("UITextSizeConstraint", {
-				MaxTextSize = 24,
+				MaxTextSize = 36,
 				MinTextSize = 10,
 			}),
 		}),

@@ -9,8 +9,8 @@ local Constants = {
 	BLOCK_HEIGHT = 1,
 
 	-- Swing mechanics
-	BASE_SWING_SPEED = 5.0, -- Studs per second at start (faster)
-	SPEED_INCREMENT = 0.1, -- Speed added per block
+	BASE_SWING_SPEED = 10.0, -- Studs per second at start (snappy but fair)
+	SPEED_INCREMENT = 0.12, -- Speed added per block
 	SWING_AMPLITUDE = 8, -- Distance from center to edge of swing
 
 	-- Tolerances

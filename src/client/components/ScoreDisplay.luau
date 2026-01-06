@@ -40,16 +40,16 @@ local function ScoreDisplay(props: ScoreDisplayProps)
 
 	return React.createElement("Frame", {
 		ref = frameRef,
-		Position = UDim2.fromScale(0.5, 0.08),
+		Position = UDim2.fromScale(0.5, 0.06),
 		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.fromScale(0.4, 0.1),
+		Size = UDim2.fromScale(0.5, 0.18),
 		BackgroundTransparency = 1,
 	}, {
 		-- Score value
 		ScoreLabel = React.createElement("TextLabel", {
-			Position = UDim2.fromScale(0.5, 0.35),
+			Position = UDim2.fromScale(0.5, 0.4),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromScale(1, 0.65),
+			Size = UDim2.fromScale(1, 0.7),
 			BackgroundTransparency = 1,
 			Text = string.format("%d", props.score),
 			TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -57,14 +57,14 @@ local function ScoreDisplay(props: ScoreDisplayProps)
 			FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 		}, {
 			TextConstraint = React.createElement("UITextSizeConstraint", {
-				MaxTextSize = 72,
-				MinTextSize = 24,
+				MaxTextSize = 120,
+				MinTextSize = 32,
 			}),
 		}),
 
 		-- Blocks count
 		BlocksLabel = React.createElement("TextLabel", {
-			Position = UDim2.fromScale(0.5, 0.82),
+			Position = UDim2.fromScale(0.5, 0.85),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromScale(1, 0.25),
 			BackgroundTransparency = 1,
@@ -75,8 +75,8 @@ local function ScoreDisplay(props: ScoreDisplayProps)
 			FontFace = Font.fromEnum(Enum.Font.BuilderSansBold),
 		}, {
 			TextConstraint = React.createElement("UITextSizeConstraint", {
-				MaxTextSize = 24,
-				MinTextSize = 10,
+				MaxTextSize = 42,
+				MinTextSize = 14,
 			}),
 		}),
 	})

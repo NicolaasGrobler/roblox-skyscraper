@@ -4,18 +4,80 @@
 ]]
 
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local CameraController = {}
 
 local camera = workspace.CurrentCamera
 
 -- Camera settings (fixed isometric with orthographic-style projection)
-local CAMERA_FOV = 15 -- Low FOV for orthographic-like effect
-local CAMERA_DISTANCE = 50 -- Increased distance to compensate for low FOV
-local CAMERA_DISTANCE_PORTRAIT = 70 -- Extra distance for portrait mode on mobile
+local CAMERA_FOV = 28 -- Wider FOV for snappier feel
+local CAMERA_DISTANCE = 28 -- Closer camera with wider FOV
+local CAMERA_DISTANCE_PORTRAIT = 40 -- Extra distance for portrait mode on mobile
 local CAMERA_HEIGHT_OFFSET = 3 -- How high above current tower top
 local CAMERA_ANGLE = 45 -- Degrees from horizontal
 local CAMERA_ROTATION = 45 -- Fixed rotation (isometric corner view)
+
+-- Atmosphere color gradient based on height (cycles through colors as you go higher)
+-- Colors are saturated enough for good contrast with white text on buttons
+local ATMOSPHERE_COLORS = {
+	{ height = 0, color = Color3.fromRGB(230, 180, 100) },   -- Warm amber (start)
+	{ height = 20, color = Color3.fromRGB(220, 120, 150) },  -- Rose pink
+	{ height = 40, color = Color3.fromRGB(160, 130, 220) },  -- Lavender
+	{ height = 60, color = Color3.fromRGB(100, 160, 220) },  -- Sky blue
+	{ height = 80, color = Color3.fromRGB(120, 200, 160) },  -- Mint green
+	{ height = 100, color = Color3.fromRGB(220, 160, 100) }, -- Peach/orange
+	{ height = 120, color = Color3.fromRGB(180, 100, 220) }, -- Purple
+	{ height = 140, color = Color3.fromRGB(100, 180, 220) }, -- Cyan
+}
+
+-- Get atmosphere color based on current height
+local function getAtmosphereColor(height: number): Color3
+	local colors = ATMOSPHERE_COLORS
+
+	-- Find the two colors to interpolate between
+	local lowerColor = colors[1]
+	local upperColor = colors[#colors]
+
+	for i = 1, #colors - 1 do
+		if height >= colors[i].height and height < colors[i + 1].height then
+			lowerColor = colors[i]
+			upperColor = colors[i + 1]
+			break
+		elseif height >= colors[#colors].height then
+			-- Loop back to beginning for very tall towers
+			local loopHeight = height % colors[#colors].height
+			return getAtmosphereColor(loopHeight)
+		end
+	end
+
+	-- Interpolate between the two colors
+	local t = (height - lowerColor.height) / (upperColor.height - lowerColor.height)
+	t = math.clamp(t, 0, 1)
+	return lowerColor.color:Lerp(upperColor.color, t)
+end
+
+-- Update atmosphere based on current height
+local function updateAtmosphere(height: number, lerpSpeed: number?)
+	local speed = lerpSpeed or 0.05
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		local targetColor = getAtmosphereColor(height)
+		-- Smoothly transition (atmosphere color updates each frame)
+		atmosphere.Color = atmosphere.Color:Lerp(targetColor, speed)
+		atmosphere.Decay = atmosphere.Decay:Lerp(targetColor:Lerp(Color3.new(0.5, 0.5, 0.5), 0.3), speed)
+	end
+end
+
+-- Instantly reset atmosphere to starting color (called during restart fade)
+local function resetAtmosphere()
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		local startColor = ATMOSPHERE_COLORS[1].color
+		atmosphere.Color = startColor
+		atmosphere.Decay = startColor:Lerp(Color3.new(0.5, 0.5, 0.5), 0.3)
+	end
+end
 
 -- Check if viewport is in portrait mode
 local function isPortraitMode(): boolean
@@ -77,9 +139,12 @@ end
 function CameraController.update(deltaTime: number)
 	-- Smoothly interpolate camera height to follow tower
 	local targetY = targetHeight + CAMERA_HEIGHT_OFFSET
-	currentCameraY = currentCameraY + (targetY - currentCameraY) * math.min(deltaTime * 5, 1)
+	currentCameraY = currentCameraY + (targetY - currentCameraY) * math.min(deltaTime * 15, 1)
 
 	CameraController.updateCameraPosition()
+
+	-- Update atmosphere color based on tower height
+	updateAtmosphere(targetHeight)
 end
 
 -- Update the camera position and orientation
@@ -154,6 +219,9 @@ function CameraController.transitionWithFade(onDuringBlack: () -> (), onComplete
 	)
 
 	fadeOutTween.Completed:Connect(function()
+		-- Reset atmosphere instantly while screen is black
+		resetAtmosphere()
+
 		-- Do the work while screen is black
 		onDuringBlack()
 
@@ -207,7 +275,7 @@ function CameraController.zoomOutToShowTower(towerHeight: number, onComplete: ((
 
 	-- Calculate camera positions for the pan
 	local towerTopHeight = basePosition.Y + towerHeight
-	local horizontalDistance = if isPortraitMode() then 55 else 40 -- Distance from tower center
+	local horizontalDistance = if isPortraitMode() then CAMERA_DISTANCE_PORTRAIT else CAMERA_DISTANCE -- Distance from tower center
 
 	local rotationRad = math.rad(CAMERA_ROTATION)
 	local offsetX = horizontalDistance * math.cos(rotationRad)
@@ -241,6 +309,9 @@ function CameraController.zoomOutToShowTower(towerHeight: number, onComplete: ((
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = CAMERA_FOV
 		camera.CFrame = CFrame.lookAt(bottomCameraPos, bottomLookAt)
+
+		-- Reset atmosphere to bottom color while screen is black
+		resetAtmosphere()
 
 		-- Phase 2: Fade back in
 		local fadeInTween = TweenService:Create(
@@ -290,6 +361,10 @@ function CameraController.panUpTower(
 		local currentLookAt = startLookAt:Lerp(endLookAt, easedProgress)
 		camera.CFrame = CFrame.lookAt(currentPos, currentLookAt)
 
+		-- Update atmosphere color as we pan up (faster lerp for more visible change)
+		local currentHeight = currentLookAt.Y - basePosition.Y
+		updateAtmosphere(currentHeight, 0.15)
+
 		if progress >= 1 then
 			panConnection:Disconnect()
 
@@ -299,7 +374,7 @@ function CameraController.panUpTower(
 			end
 
 			-- Start orbiting around the tower at the top
-			local orbitDistance = if isPortraitMode() then 55 else 40
+			local orbitDistance = if isPortraitMode() then CAMERA_DISTANCE_PORTRAIT else CAMERA_DISTANCE
 			CameraController.startOrbit(towerHeight, orbitDistance)
 		end
 	end)

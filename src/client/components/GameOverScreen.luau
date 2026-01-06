@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
 local React = require(ReplicatedStorage.Packages.React)
 
@@ -21,6 +22,9 @@ local function GameOverScreen(props: GameOverScreenProps)
 
 	-- Track if we're in portrait mode for responsive button sizing
 	local isPortrait, setIsPortrait = React.useState(false)
+
+	-- Capture atmosphere color when game over screen appears
+	local buttonColor, setButtonColor = React.useState(Color3.fromRGB(255, 220, 150))
 
 	React.useEffect(function()
 		local camera = workspace.CurrentCamera
@@ -39,6 +43,16 @@ local function GameOverScreen(props: GameOverScreenProps)
 			connection:Disconnect()
 		end
 	end, {})
+
+	-- Capture the atmosphere color when becoming visible
+	React.useEffect(function()
+		if props.visible then
+			local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmosphere then
+				setButtonColor(atmosphere.Color)
+			end
+		end
+	end, { props.visible })
 
 	-- Animate when visible changes to true
 	React.useEffect(function()
@@ -146,7 +160,7 @@ local function GameOverScreen(props: GameOverScreenProps)
 				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 			}, {
 				TextConstraint = React.createElement("UITextSizeConstraint", {
-					MaxTextSize = 56,
+					MaxTextSize = 80,
 					MinTextSize = 20,
 				}),
 			}),
@@ -163,7 +177,7 @@ local function GameOverScreen(props: GameOverScreenProps)
 				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 			}, {
 				TextConstraint = React.createElement("UITextSizeConstraint", {
-					MaxTextSize = 72,
+					MaxTextSize = 100,
 					MinTextSize = 28,
 				}),
 			}),
@@ -180,7 +194,7 @@ local function GameOverScreen(props: GameOverScreenProps)
 				FontFace = Font.fromEnum(Enum.Font.BuilderSansBold),
 			}, {
 				TextConstraint = React.createElement("UITextSizeConstraint", {
-					MaxTextSize = 24,
+					MaxTextSize = 36,
 					MinTextSize = 12,
 				}),
 			}),
@@ -195,21 +209,33 @@ local function GameOverScreen(props: GameOverScreenProps)
 			RestartButton = React.createElement("TextButton", {
 				Name = "RestartButton",
 				LayoutOrder = 5,
-				Size = UDim2.fromScale(if isPortrait then 0.9 else 0.55, 0.18),
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				Size = UDim2.fromScale(if isPortrait then 0.9 else 0.6, 0.22),
+				BackgroundColor3 = buttonColor,
 				Text = "PLAY AGAIN",
-				TextColor3 = Color3.fromRGB(0, 0, 0),
+				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextTransparency = 1,
 				TextScaled = true,
 				FontFace = Font.fromEnum(Enum.Font.BuilderSansExtraBold),
 				[React.Event.MouseButton1Click] = props.onRestart,
 			}, {
 				Corner = React.createElement("UICorner", {
-					CornerRadius = UDim.new(0.2, 0),
+					CornerRadius = UDim.new(0.3, 0),
+				}),
+				Stroke = React.createElement("UIStroke", {
+					Color = Color3.fromRGB(255, 255, 255),
+					Thickness = 3,
+					Transparency = 0,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				}),
+				Padding = React.createElement("UIPadding", {
+					PaddingTop = UDim.new(0.15, 0),
+					PaddingBottom = UDim.new(0.15, 0),
+					PaddingLeft = UDim.new(0.1, 0),
+					PaddingRight = UDim.new(0.1, 0),
 				}),
 				TextConstraint = React.createElement("UITextSizeConstraint", {
-					MaxTextSize = 28,
-					MinTextSize = 12,
+					MaxTextSize = 48,
+					MinTextSize = 14,
 				}),
 			}),
 		}),
